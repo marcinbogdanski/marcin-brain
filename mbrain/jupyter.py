@@ -1,4 +1,5 @@
 import re
+import json
 
 import nbformat
 import nbconvert
@@ -39,17 +40,6 @@ def is_flashcard(cell):
 #                 vvvv|||vvv---- pattern:   -->
 _pattern_meta = r'<!--.*?-->'
 
-def find_meta(string):
-    """Find Anki metadata, i.e. first <!--...--> block
-    
-    Params:
-        string (str): input, e.g. '<!--Anki meta--> rest of card.'
-    
-    Returns:
-        str: found meta, e.g. '<!--Anki meta-->'
-    """
-    meta = re.findall(_pattern_meta, string)
-    return meta[0]
 
 def get_meta(string):
     """Extract Anki metadata from cell source.
@@ -60,14 +50,43 @@ def get_meta(string):
     Returns:
         dick: metadata as dict, e.g. {"id": "123456789"}
     """
-    meta = find_meta(string)  # '<!--..-->'
+    meta = re.findall(_pattern_meta, string)
+    meta = meta[0]                            # only first <!-- -->
     meta = meta.lstrip('<!--').rstrip('-->').strip()
     
     if len(meta) == 0:
         return {}
     else:
         return json.loads(meta)
+
     
+def put_meta(string, anki_id):
+    """Replace current Anki metadata with new params.
+    
+    Params:
+        string (str): input, e.g. '<!--Anki meta--> rest of card.'
+    
+    Returns:
+        str: found meta, e.g. '<!--new Anki meta-->'    
+    """
+    assert isinstance(anki_id, str)
+    
+    meta_str = json.dumps({"id":anki_id})
+    meta_str = '<!-- ' + meta_str + ' -->'
+    meta_list = list(meta_str)
+    
+    string_list = list(string)
+    for match in re.finditer(_pattern_meta, string):
+        start = match.start()
+        end = match.end()
+        
+        string_list[start:end] = meta_list
+        
+        break # consider first <!-- --> only
+    
+    return ''.join(string_list)
+
+
 def remove_meta(string):
     """Remove Anki metadata, i.e. first <!--...--> section
     
