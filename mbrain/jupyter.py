@@ -99,14 +99,14 @@ def remove_head(string):
 # This regex matches lines in form:   $$some text here$$
 # Note: $$ must start and and line
 #
-#                 v-------------- beginning (^): matches begining of input/line
-#                 |  v----------- pattern (\$\$):   $$ 
-#                 |  | v--------- dot (.): matches any character except line break
-#                 |  | |v-------- plus (+): match one or more of preceeding token
-#                 |  | ||  v----- pattern (\$\$):   $$
-#                 |  | ||  | v--- end ($): matches end of input/line
-#                 |vvvv||vvvv| 
-_pattern_dodo = r'^\$\$.+\$\$$'
+#                   v----------- pattern (\$\$):   $$ 
+#                   | v--------- dot (.): matches any character except line break
+#                   | |v-------- plus (+): match one or more of preceeding token
+#                   | ||v------- lazy: make preceeding quantifier match as few characters as possible
+#                   | |||  v---- pattern (\$\$):   $$
+#                   | |||  |
+#                 vvvv|||vvvv
+_pattern_dodo = r'\$\$.+?\$\$'
 
 def replace_double_dollars(string):
     """Replace all math blocks indicated with '$$'
@@ -128,7 +128,7 @@ def replace_double_dollars(string):
         str: converted string
     """
     string_list = list(string)
-    for match in re.finditer(_pattern_dodo, string, flags=re.M):
+    for match in re.finditer(_pattern_dodo, string):
         start = match.start()
         end = match.end()
         string_list[start:start+2] = '\['
@@ -141,37 +141,48 @@ def replace_double_dollars(string):
 
 
 # This regex matches in-line non-esscaped dollar:   $some text here$
-# Note: escaped dollar \\$ won't match
+# Note: escaped dollar \$ won't match
 # See: https://stackoverflow.com/questions/11819059/regex-match-character-which-is-not-escaped
 #                
-#                    v------------ matches if preceding character is not double backslash
-#                    |    v------- pattern (\$):   $
-#                    |    | v----- dot (.): matches any character except line break
-#                    |    | |v---- plus (+): match one or more of preceeding token
-#                    |    | ||v--- lazy (?): make preceeding quantifier match as few characters as possible
-#                    |    | ||| v- pattern (\$):   $
-#                 vvvvvvv vv|||vv
-pattern_sido = r'(?<!\\\\)\$.+?\$'
+#                  v------------ matches if preceding character is not double backslash
+#                  |    v------- pattern (\$):   $
+#                  |    | v----- dot (.): matches any character except line break
+#                  |    | |v---- plus (+): match one or more of preceeding token
+#                  |    | ||v--- lazy (?): make preceeding quantifier match as few characters as possible
+#                  |    | ||| v- pattern (\$):   $
+#                 vvvvv vv|||vv
+pattern_sido = r'(?<!\\)\$.+?\$'
 
 
 def replace_single_dollars(string):
     """Replace all in-line math expressions indicacted by '$'
     
-    Jupyter uses '$' to indicate inline MathJax, while
-    Anki uses '\(' and '\)' for the same purpose
+    Why this function:
+    Jupyter uses '$' to indicate inline MathJax, e.g. $x=3$, but
+    Anki uses '\(' and '\)' for the same purpose, hence this function
     
     Example input line:     some text $ x = 3 $ more text
     Will convert to:        some text \[ x = 3 \[ more text
-    
-    Note: Jupyter allows to escape dollar sign with double backslash,
-    for example \\$50 will be displayed as $50 and wont activate math.
-    This behavious is taken into account in this function.
+    Example escaped $       this will cost <span>\$</span>5.99 a piece
     
     Params:
         string (str): input string
     
     Returns:
         str: converted string
+
+    Notes on escaping dollar sign:
+     - Jupyter MathJax captures all '$' signs in text, so we have to esape it
+     - single backslash escape doensn't work '\$'
+     - double backslash, i.e. '\\$', works, but...
+       + nbconvert html export has bug, and will sometimes convert '\\$' into '\$'
+         and sometimes doesn't, which makes further processsing tricky
+     - a way that does seem to work is to escape with '<span>\$</span>', this way:
+       + it is ignored by MathJax
+       + Jupyter HTML export (via File menu) and nbconvert.HTMLExporter() will produce
+         same literal '<span>\$</span>' in ouput HTML, internet browsers seem to
+         ignore preceeding '\' so this displayes correctly in browser,
+         but Anki displays leading '\', so we need to process further
     """
     # Because we replace single char '$' with dual char '\(' and '\)'
     # we have to iterate list backward so we don't offset indices
@@ -187,7 +198,17 @@ def replace_single_dollars(string):
         string_list[start:start+1] = ['\\', '(']
     return ''.join(string_list)
 
-# s = r'adfsa flaj \\$30 sdfkla $ x = 3 $ $ y = 2 $.'
+# s = r'adfsa flaj <span>\$</span>30 sdfkla $ x = 3 $ $ y = 2 $.'
 # r = replace_single_dollars(s)
-# assert r == r'adfsa flaj \\$30 sdfkla \( x = 3 \) \( y = 2 \).'
+# assert r == r'adfsa flaj <span>\$</span>30 sdfkla \( x = 3 \) \( y = 2 \).'
 
+def replace_escaped_dollars(string):
+    """Convert '<span>\$</span>' to '$'
+    
+    Params:
+        string (str): input string
+    
+    Returns:
+        str: converted string    
+    """
+    return string.replace(r'<span>\$</span>', '$')
