@@ -51,6 +51,23 @@ def find_meta(string):
     meta = re.findall(_pattern_meta, string)
     return meta[0]
 
+def get_meta(string):
+    """Extract Anki metadata from cell source.
+    
+    Params:
+        string (str): input, e.g. '<!--{"id":"123456789"}--> rest of card.'
+    
+    Returns:
+        dick: metadata as dict, e.g. {"id": "123456789"}
+    """
+    meta = find_meta(string)  # '<!--..-->'
+    meta = meta.lstrip('<!--').rstrip('-->').strip()
+    
+    if len(meta) == 0:
+        return {}
+    else:
+        return json.loads(meta)
+    
 def remove_meta(string):
     """Remove Anki metadata, i.e. first <!--...--> section
     
@@ -82,8 +99,21 @@ def find_head(string):
     Returns:
         str: found head, e.g. '**Question 1**'
     """
-    meta = re.findall(_pattern_head, string)
-    return meta[0]
+    head = re.findall(_pattern_head, string)
+    return head[0]
+
+def get_head(string):
+    """Get Anki head (question) without ** markers
+    
+    Params:
+        string (str): input, e.g. '**Question 1** rest of card.'
+    
+    Returns:
+        str: found head, e.g. 'Question 1'
+    """
+    head = find_head(string)
+    head = head.lstrip('**').rstrip('**').strip()
+    return head
 
 def remove_head(string):
     """Remove Anki head (question), i.e. first **...** section
@@ -229,7 +259,7 @@ def process_cell_source(source):
        + convert escaped dollars '<span>\$</span>' into '$'
     
     Example source:
-        <!---->
+        <!--{"id":"1234567890"}-->
         **Example question goes here**
         Some answer goes here
         With escaped dollar <span>\$</span>5.99 price
@@ -237,21 +267,23 @@ def process_cell_source(source):
         $$ E = mc^2 $$
         
     Example output:
-        META: <!---->
-        HEAD: **Example question goes here**
+        META: {"id": "1234567890"}
+        HEAD: 'Example question goes here'
         BODY:
             Some answer goes here
             With escaped dollar $5.99 price
             Inline latex \(x=5\) and latex block
             \[ E = mc^2 \]
-        
     
     Params:
         source (str): cell source
+    
+    Returns:
+        meta (dict) - Anki metadata as dict
     """
-    meta = find_meta(source)
+    meta = get_meta(source)
     source = remove_meta(source)
-    head = find_head(source)
+    head = get_head(source)
     source = remove_head(source)
     source = source.strip()
     
