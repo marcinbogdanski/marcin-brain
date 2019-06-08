@@ -1,5 +1,8 @@
 import re
 
+import nbformat
+import nbconvert
+
 def is_flashcard(cell):
     """Check if cell is a flashcard
     
@@ -212,3 +215,56 @@ def replace_escaped_dollars(string):
         str: converted string    
     """
     return string.replace(r'<span>\$</span>', '$')
+
+
+def process_cell_source(source):
+    """Extract meta, head and body from cell['source']
+    
+    This will:
+     - extract and remove metadata from <!--...--> tag
+     - extract and remove question from **...** tag
+     - convert remaining source as follows:
+       + convert double $$..$$ blocks into \[..\]
+       + convert single $..$ blocks into \(..\)
+       + convert escaped dollars '<span>\$</span>' into '$'
+    
+    Example source:
+        <!---->
+        **Example question goes here**
+        Some answer goes here
+        With escaped dollar <span>\$</span>5.99 price
+        Inline latex $x=5$ and latex block
+        $$ E = mc^2 $$
+        
+    Example output:
+        META: <!---->
+        HEAD: **Example question goes here**
+        BODY:
+            Some answer goes here
+            With escaped dollar $5.99 price
+            Inline latex \(x=5\) and latex block
+            \[ E = mc^2 \]
+        
+    
+    Params:
+        source (str): cell source
+    """
+    meta = find_meta(source)
+    source = remove_meta(source)
+    head = find_head(source)
+    source = remove_head(source)
+    source = source.strip()
+    
+    tmp_nb = nbformat.v4.new_notebook()
+    tmp_cell = nbformat.v4.new_markdown_cell(source=source)
+    tmp_nb['cells'].append(tmp_cell)
+    
+    html_exporter = nbconvert.HTMLExporter()
+    html_exporter.template_file = 'basic'
+    body_raw, _ = html_exporter.from_notebook_node(tmp_nb)
+    
+    body_nodd = replace_double_dollars(body_raw)
+    body_nosd = replace_single_dollars(body_nodd)
+    body = replace_escaped_dollars(body_nosd)
+    
+    return meta, head, body
