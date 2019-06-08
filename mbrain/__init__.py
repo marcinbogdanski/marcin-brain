@@ -7,3 +7,13 @@ from .jupyter import replace_double_dollars
 from .jupyter import replace_single_dollars
 from .jupyter import replace_escaped_dollars
 from .jupyter import process_cell_source
+
+from .anki import anki_invoke
+from .anki import anki_test_db
+from .anki import anki_get_decks
+from .anki import anki_find_notes
+
+from .anki import anki_add_note
+from .anki import anki_get_note
+from .anki import anki_update_note
+from .anki import anki_delete_note
