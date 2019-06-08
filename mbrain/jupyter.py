@@ -67,7 +67,7 @@ def put_meta(string, anki_id):
         string (str): input, e.g. '<!--Anki meta--> rest of card.'
     
     Returns:
-        str: found meta, e.g. '<!--new Anki meta-->'    
+        str: new meta, e.g. '<!--new Anki meta-->'    
     """
     assert isinstance(anki_id, str)
     
