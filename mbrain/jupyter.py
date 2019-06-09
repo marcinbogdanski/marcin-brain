@@ -1,5 +1,7 @@
 import re
 import json
+import hashlib
+import collections
 
 import nbformat
 import nbconvert
@@ -254,6 +256,7 @@ def replace_single_dollars(string):
 # r = replace_single_dollars(s)
 # assert r == r'adfsa flaj <span>\$</span>30 sdfkla \( x = 3 \) \( y = 2 \).'
 
+
 def replace_escaped_dollars(string):
     """Convert '<span>\$</span>' to '$'
     
@@ -264,6 +267,127 @@ def replace_escaped_dollars(string):
         str: converted string    
     """
     return string.replace(r'<span>\$</span>', '$')
+
+
+def _extract_attachment_name(string):
+    """Get attachment name from markdown ![title](name) format
+    
+    Params:
+        string (str): Markdown attachment in format '![TITLE](ATTACHMENT)'
+        
+    Return:
+        string (str): Extracted attachment name, i.e. 'ATTACHMENT'
+    """
+    
+    # This pattern will match '![XXXXX](attachment:'
+    # this is used to extract image name
+    _pattern = r'\!\[.*?\]\(attachment:'
+    result = re.sub(_pattern, '', string).rstrip(')')
+    return result
+
+
+Sha256AndValue = collections.namedtuple('Sha256AndValue', ('sha256', 'value'))
+
+
+def get_attachments(cell):
+    """Extract all valid attachments from the cell.
+    
+    For attachment to be extracted, following conditions need to be met:
+     - cell.source must contain following tag: ![TITLE](ATTACHMENT_NAME)
+       where TITLE and ATTACHMENT_NAME are any strings (TITLE can be 0-length)
+     - cell['attachments']['ATTACHMENT_NAME']['SOME_TYPE'] must contain base64 data
+       and where SOME_TYPE is any string, usually 'image/png'
+     - if first condition is met, but not the second, then exception is raised
+    
+    Params:
+        cell (nbformat.notebooknode.NotebookNode): Jupyter Cell
+    
+    Returns:
+        dict (ATTACHMENT_NAME -> (SHA256, VALUE)): with following members:
+            ATTACHMENT_NAME (str): name of attachment, as in Jupyter markdown cell
+            SHA256 (str): SHA256 hexdigest of VALUE below
+            VALUE (str): base64 encoded data, copy-pasted from Jupyter cell attachment
+    """
+    
+    # This pattern will match '![XXXXX](attachment:YYYYY)'
+    # where XXX is image title, usually 'image.png'
+    # any YYY is attachment name, usually also 'image.png'
+    _pattern_atta = r'\!\[.*?\]\(attachment:.+?\)'
+    
+    attachments_raw = re.findall(_pattern_atta, cell.source)
+    # >>> print(attachments_raw)
+    # ['![image.png](attachment:image.png)']
+    
+    attachment_names = []
+    for att_raw in attachments_raw:
+        attachment_names.append(_extract_attachment_name(att_raw))
+    # >>> print(attachment_names)
+    # ['image.png']
+    
+    # If cell is well formed, then it should contain following key with base64 value:
+    # cell['attachments']['image.png']['image/png'] -> 'iVBORw0KGgoAAAANS...'
+
+    attachment_sha256_values = {}  # <- this is returned from function
+
+    if 'attachments' in cell:
+        for name in attachment_names:
+            if name in cell['attachments']:
+                if len(cell['attachments'][name]) == 1:
+                    value = list(cell['attachments'][name].values())[0]
+                    sha256 = hashlib.sha256(value.encode()).hexdigest()
+                    attachment_sha256_values[name] = Sha256AndValue(sha256, value)
+                else:
+                    raise ValueError(f"Attachment {name} has multiple instances in Jupyter???")
+            else:
+                raise ValueError(f"Attachment {name} not found in Jupyter cell attachments")
+    else:
+        raise ValueError("Cell has markdown image ![](), but no cell has no 'attachments' in Jupyter?")
+        
+    # >>> print(attachment_sha256_values)
+    # {'image.png': Sha256AndValue(sha256='9ea02ea...', value='iVBORw...')}
+    
+    return attachment_sha256_values
+
+
+def replace_image_tags(string_html, attachment_name, attachment_sha256):
+    """Replace <img> tag in html with sha256
+    
+    This function will perform following substitutions in string_html:
+     - input:  '<img src="attachment:ATTACHMENT_NAME" alt="XXX">'
+     - output: '<img src="ATTACHMENT_SHA256">'
+     - where ATTACHMENT_NAME and ATTACHMENT_SHA256 are params to this funciton
+    
+    Params:
+        string_html (str): cell converted to html
+        attachment_name (str): name of attachment, use get_attachments() to acquire
+        attachment_sha256 (str): sha256 hexdigest, use get_attachments() to acquire
+        
+    Returns:
+        str: new html with one or more tags replaced
+    """
+    
+    # This will match if string alphanumeric with optional dot
+    # If string contains any other characters this will not match
+    pattern = r'^[a-zA-Z0-9.]+$'
+    res = re.match(pattern, attachment_name)
+    if res is None:
+        raise ValueError(f'Attachment name ({attachment_name})must be alphanumerc with optional dots.')
+    
+    # If we want to use name in regex, we have to escape any dots
+    a = attachment_name.replace('.', '\.')
+    
+    # This will match '<img src="attachment:ATTACHMENT_NAME" alt="XXX">'
+    # Where ATTACHMENT_NAME is param passed to this function
+    # and XXX is any string
+    pattern = f'<img src="attachment:{a}" alt=".*?">'
+    
+    # Above pattern will be replaced with this
+    target = f'<img src="{attachment_sha256}">'
+    
+    return re.sub(pattern, target, string_html)
+
+
+
 
 
 def process_cell_source(source):
