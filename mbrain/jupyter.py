@@ -286,7 +286,7 @@ def _extract_attachment_name(string):
     return result
 
 
-Sha256AndValue = collections.namedtuple('Sha256AndValue', ('sha256', 'value'))
+KeyValue = collections.namedtuple('KeyValue', ('key', 'value'))
 
 
 def get_attachments(cell):
@@ -324,6 +324,9 @@ def get_attachments(cell):
     # >>> print(attachment_names)
     # ['image.png']
     
+    if len(attachment_names) == 0:
+        return {}  #  nothing more to do here
+    
     # If cell is well formed, then it should contain following key with base64 value:
     # cell['attachments']['image.png']['image/png'] -> 'iVBORw0KGgoAAAANS...'
 
@@ -332,21 +335,37 @@ def get_attachments(cell):
     if 'attachments' in cell:
         for name in attachment_names:
             if name in cell['attachments']:
-                if len(cell['attachments'][name]) == 1:
-                    value = list(cell['attachments'][name].values())[0]
+                if 'image/png' in cell['attachments'][name]:
+                    value = cell['attachments'][name]['image/png']
                     sha256 = hashlib.sha256(value.encode()).hexdigest()
-                    attachment_sha256_values[name] = Sha256AndValue(sha256, value)
+                    key = sha256
+                    attachment_sha256_values[name] = KeyValue(key, value)
                 else:
-                    raise ValueError(f"Attachment {name} has multiple instances in Jupyter???")
+                    raise ValueError(f"Attachment {name} is not a 'image/png'???")
             else:
                 raise ValueError(f"Attachment {name} not found in Jupyter cell attachments")
     else:
         raise ValueError("Cell has markdown image ![](), but no cell has no 'attachments' in Jupyter?")
         
     # >>> print(attachment_sha256_values)
-    # {'image.png': Sha256AndValue(sha256='9ea02ea...', value='iVBORw...')}
+    # {'image.png': KeyValue(key='9ea02ea....png', value='iVBORw...')}
     
     return attachment_sha256_values
+
+
+def replace_div_style(string_html):
+    """Add left-align css style
+    
+    Params:
+        string_html (str): cell converted to html
+        
+    Returns:
+        str: new html with tag replaced
+    """
+    
+    pattern = '<div class="inner_cell">'
+    target =  '<div class="inner_cell" style="text-align: left">'
+    return re.sub(pattern, target, string_html)
 
 
 def replace_image_tags(string_html, attachment_name, attachment_sha256):
@@ -458,7 +477,10 @@ def process_cell(cell):
     body_nosd = replace_single_dollars(body_nodd)
     
     # Replace <span>\$</span> with $
-    body = replace_escaped_dollars(body_nosd)
+    body_noed = replace_escaped_dollars(body_nosd)
+    
+    # Add style="text-align: left" to <div class="inner_cell">
+    body = replace_div_style(body_noed)
     
     # Replace <img src="attachment:..."> with <img src="SHA256">
     for name, (sha256, value) in attachments.items():
