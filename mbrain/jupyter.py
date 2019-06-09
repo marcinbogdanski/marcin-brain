@@ -390,16 +390,19 @@ def replace_image_tags(string_html, attachment_name, attachment_sha256):
 
 
 
-def process_cell_source(source):
-    """Extract meta, head and body from cell['source']
+def process_cell(cell):
+    """Extract meta, head, body and attachments from Jupyter cell
     
     This will:
-     - extract and remove metadata from <!--...--> tag
-     - extract and remove question from **...** tag
-     - convert remaining source as follows:
+     - extract and remove metadata from <!--...--> tag from cell.source
+     - extract and remove question from **...** tag from cell.source
+     - extract any attachments mentioned in ![...](...) tags in cell.source
+     - convert remaining Markdown cell.source into HTML
+     - convert HTML as follows:
        + convert double $$..$$ blocks into \[..\]
        + convert single $..$ blocks into \(..\)
        + convert escaped dollars '<span>\$</span>' into '$'
+       + replace <img src="attachment:..."> with <img src="SHA256">
     
     Example source:
         <!--{"id":"1234567890"}-->
@@ -424,22 +427,41 @@ def process_cell_source(source):
     Returns:
         meta (dict) - Anki metadata as dict
     """
+    
+    assert isinstance(cell, nbformat.notebooknode.NotebookNode)
+    source = cell.source
+    
+    # Extract and remove <!--...-->
     meta = get_meta(source)
     source = remove_meta(source)
+    
+    # Extract and remove **...**
     head = get_head(source)
     source = remove_head(source)
     source = source.strip()
     
+    # Extract attachments
+    attachments = get_attachments(cell)
+    
+    # Convert to HTML
     tmp_nb = nbformat.v4.new_notebook()
     tmp_cell = nbformat.v4.new_markdown_cell(source=source)
     tmp_nb['cells'].append(tmp_cell)
-    
     html_exporter = nbconvert.HTMLExporter()
     html_exporter.template_file = 'basic'
     body_raw, _ = html_exporter.from_notebook_node(tmp_nb)
     
+    # Replace $$...$$ with \[...\]
     body_nodd = replace_double_dollars(body_raw)
+    
+    # Replace $...$ with \(...\)
     body_nosd = replace_single_dollars(body_nodd)
+    
+    # Replace <span>\$</span> with $
     body = replace_escaped_dollars(body_nosd)
     
-    return meta, head, body
+    # Replace <img src="attachment:..."> with <img src="SHA256">
+    for name, (sha256, value) in attachments.items():
+        body = replace_image_tags(body, name, sha256)
+    
+    return meta, head, body, attachments
