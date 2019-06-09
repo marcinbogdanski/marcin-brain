@@ -415,6 +415,7 @@ def process_cell(cell):
     This will:
      - extract and remove metadata from <!--...--> tag from cell.source
      - extract and remove question from **...** tag from cell.source
+       + convert $..$ into \(..\) in head
      - extract any attachments mentioned in ![...](...) tags in cell.source
      - convert remaining Markdown cell.source into HTML
      - convert HTML as follows:
@@ -455,9 +456,12 @@ def process_cell(cell):
     source = remove_meta(source)
     
     # Extract and remove **...**
-    head = get_head(source)
+    head_raw = get_head(source)
     source = remove_head(source)
     source = source.strip()
+    
+    # Replace $...$ with \(...\) in head
+    head = replace_single_dollars(head_raw)
     
     # Extract attachments
     attachments = get_attachments(cell)
