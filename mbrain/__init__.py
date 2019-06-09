@@ -19,3 +19,5 @@ from .anki import anki_add_note
 from .anki import anki_get_note
 from .anki import anki_update_note
 from .anki import anki_delete_note
+from .anki import anki_add_or_replace_media
+from .anki import anki_get_media

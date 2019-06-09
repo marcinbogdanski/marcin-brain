@@ -180,3 +180,31 @@ def anki_delete_note(id_):
     assert isinstance(id_, (str, int))  # either works
     
     anki_invoke('deleteNotes', notes=[id_])
+
+
+def anki_add_or_replace_media(name, data):
+    """Insert media file to Anki, if exist replace.
+    
+    Params:
+        name (str): media filename (key) in Anki database
+        data (str): base64 encoded data, usually png image
+    """
+    anki_invoke('storeMediaFile', filename=name, data=data)
+
+    
+def anki_get_media(name):
+    """Get media from Anki database.
+    
+    Params:
+        name (str): media filename (key) in Anki database
+    
+    Returns:
+        str: base64 encoded data, usually png image, or None if no file in database
+    """
+    res = anki_invoke('retrieveMediaFile', filename='reddot.png')
+    if isinstance(res, str):
+        return res
+    elif res == False:
+        return None  # no file in database
+    else:
+        ValueError('anki_invoke(retrieveMediaFile) returned not str and not False.')
