@@ -49,14 +49,14 @@ def anki_invoke(action, **params):
 
 
 def anki_test_db():
-    """Make sure 'Basic' model exists and has fields 'Front' and 'Back'."""
+    """Make sure 'Basic-MathJax' model exists and has fields 'Front' and 'Back'."""
     models_list = anki_invoke('modelNames')
-    if 'Basic' not in models_list:
+    if 'Basic-MathJax' not in models_list:
         raise ValueError('Could not find "Basic" model in Anki database.')
     
-    basic_fileds = anki_invoke('modelFieldNames', modelName='Basic')
+    basic_fileds = anki_invoke('modelFieldNames', modelName='Basic-MathJax')
     if basic_fileds != ['Front', 'Back']:
-        raise ValueError('Model "Basic" fields must be "Front" and "Back"')
+        raise ValueError('Model "Basic-MathJax" fields must be "Front" and "Back"')
 
         
 def anki_get_decks():
@@ -113,7 +113,7 @@ def anki_add_note(deck, front, back):
     
     note = {
         'deckName': deck,
-        'modelName': 'Basic',
+        'modelName': 'Basic-MathJax',
         'fields': { 'Front': front, 'Back': back },
         'options': { 'allowDuplicate': False },
         'tags': [],
@@ -142,7 +142,7 @@ def anki_get_note(id_):
     assert len(info_list) == 1
     
     info = info_list[0]
-    assert info['modelName'] == 'Basic'
+    assert info['modelName'] in ['Basic', 'Basic-MathJax']
     
     fields = info['fields']
     front = fields['Front']['value']
