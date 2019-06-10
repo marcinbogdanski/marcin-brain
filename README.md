@@ -32,3 +32,4 @@ Paste this code at the end of your Front **and** Back Templates:
 })();
 </script>
 ```
+
