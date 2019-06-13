@@ -22,5 +22,6 @@ from .anki import anki_delete_note
 from .anki import anki_add_or_replace_media
 from .anki import anki_get_media
 
-from .convert import figure_out_command
-from .convert import execute_command
+from .convert import read_notebooks
+from .convert import commands_prepare
+from .convert import commands_execute

@@ -1,3 +1,8 @@
+import os
+import glob
+
+import nbformat
+
 from .jupyter import put_meta
 
 from .anki import anki_get_note
@@ -5,7 +10,9 @@ from .anki import anki_add_note
 from .anki import anki_update_note
 from .anki import anki_get_media
 from .anki import anki_add_or_replace_media
-
+from .anki import anki_find_notes
+from .jupyter import is_flashcard
+from .jupyter import process_cell
 
 class Command:
     """Thin wrapper around command parameters.
@@ -19,7 +26,8 @@ class Command:
         cell (nbformat.notebooknode.NotebookNode): whole cell extracted from Jupyter
         attachments (dict): dict returned from get_attachments() function
     """
-    def __init__(self, cmd, id_, head, body, deck=None, cell=None, attachments=None):
+    def __init__(self, cmd, id_, head, body, deck=None,
+                 filepath=None, notebook=None, cell=None, attachments=None):
         self.cmd = cmd
         self.id = id_
         self.head = head
@@ -29,7 +37,34 @@ class Command:
         self.attachments = attachments
 
         
-def figure_out_command(meta, head, body, note_ids):
+def read_notebooks(notes_folder_location):
+    """Read .ipynb files from specified location.
+    
+    Params:
+        notes_folder_location (str): folder with .ipynb notes
+    
+    Returns:
+        dict str->nbformat.notebooknode.NotebookNode:
+            dict mapping .ipynb file paths to notebook objects
+    """
+    
+    # Find all .ipynb files in notes_folder
+    pattern = os.path.join(notes_folder_location, '**', '*.ipynb')
+    notebook_filepaths = glob.glob(pattern, recursive=True)
+    # display(notebook_filepaths)
+    # ['/../notes/DeepRL_Notes.ipynb', '/../notes/Coursera_DLAI.ipynb']
+    
+    file_nb_dict = {}
+    
+    for file_location in notebook_filepaths:
+        with open(file_location, 'r') as f:
+            nb = nbformat.read(f, as_version=4)
+            file_nb_dict[file_location] = nb
+            
+    return file_nb_dict
+
+        
+def _figure_out_command(meta, head, body, note_ids):
     """Based on available information, estabilish which command to run.
     
     Commands possible are:
@@ -66,7 +101,48 @@ def figure_out_command(meta, head, body, note_ids):
     return cmd
 
 
-def execute_command(cmd):
+
+
+def commands_prepare(file_nb_dict, anki_deck_name):
+    """Query Anki DB and check notes folder and prepare commands to sync.
+    
+    This function does not alter Anki database or notes folder.
+    
+    Params:
+        file_nb_dict (dict str->nbformat.notebooknode.NotebookNode):
+            dict mapping .ipynb file paths to notebook objects
+        anki_deck_name (str): deck name in Anki database to sync to
+        
+    Returns:
+        list-of-mbrain.Command: list of commands, which if executed, will do sync
+            to execute commands pass them to commands_execute() function
+    """
+    assert isinstance(file_nb_dict, dict)
+    assert isinstance(anki_deck_name, str)
+    
+    existing_note_ids = anki_find_notes(anki_deck_name)
+    # print(existing_note_ids)
+    # ['1560133178581', '1560133182006', ... ]
+
+    commands = []
+
+    for nb in file_nb_dict.values():
+        for cell in nb['cells']:
+            if not is_flashcard(cell):
+                continue
+
+            meta, head, body, attachments = process_cell(cell)
+            cmd = _figure_out_command(meta, head, body, existing_note_ids)
+            if cmd is not None:
+                cmd.deck = anki_deck_name
+                cmd.cell = cell
+                cmd.attachments = attachments
+                commands.append(cmd)
+                
+    return commands
+
+
+def _exec_command(cmd):
     """Execute give command on Anki database.
     
     Params:
@@ -86,3 +162,17 @@ def execute_command(cmd):
         anki_update_note(cmd.id, cmd.head, cmd.body)
     else:
         raise ValueError(f'Unknown command: {cmd.cmd}')
+        
+def commands_execute(file_nb_dict, commands):
+    """This will execute given commands
+    
+    Params:
+        commands (list-of-mbrain.Command)
+    """
+    for cmd in commands:
+        print('Executing:', cmd.cmd, cmd.head)
+        _exec_command(cmd)
+        
+    for fl, nb in file_nb_dict.items():
+        with open(fl, 'w') as f:
+            nbformat.write(nb, f)
