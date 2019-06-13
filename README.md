@@ -1,5 +1,15 @@
 Initial readme
 
+**Install for User**
+
+Add following to your .bashrc and restart terminal
+
+```bash
+export PYTHONPATH=${PYTHONPATH}:$HOME/marcin-brain
+export PATH=$PATH:$HOME/marcin-brain/scripts
+```
+
+**Anki DB Requirements**
 
 This repo requires you create new card type **Basic-MathJax** as explained [here](https://www.reddit.com/r/Anki/comments/a0x5qt/displaying_mathjax_in_ankidroid_while_staying/)
 

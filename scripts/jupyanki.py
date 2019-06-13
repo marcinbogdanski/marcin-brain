@@ -1,16 +1,12 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 import argparse
 
-module_path = os.path.abspath(os.path.join('..'))
-if module_path not in sys.path:
-    sys.path.append(module_path)
-
 import mbrain as mb
 
 def dry_run(notes_folder_location, anki_deck_name):
-#     notes_folder_location = '/home/marcin/marcin-notes'
-#     anki_deck_name = 'Notes'
     
     file_nb_dict = mb.read_notebooks(notes_folder_location)
     
