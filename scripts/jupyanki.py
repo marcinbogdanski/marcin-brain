@@ -18,8 +18,13 @@ def sync(notes_folder_location, anki_deck_name):
         print('Following commands required to sync:')
         for c in commands:
             print(' * ' + c.cmd + ': ' + c.head)
+            
+        files_to_update = {cmd.notebook_filepath for cmd in commands if cmd.notebook_may_change}
+        print('Files that will be potentially updated:')
+        for f in files_to_update:
+            print(' + ' + f)
     
-        do_exec = input('Execute commands (this will potentially alter .ipynb!)? [y/N]:')
+        do_exec = input('Execute commands? [y/N]:')
         
         if do_exec == 'y':
             print('Executing...')

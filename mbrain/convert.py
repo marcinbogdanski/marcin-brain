@@ -25,9 +25,15 @@ class Command:
         deck (str): Anki deck name
         cell (nbformat.notebooknode.NotebookNode): whole cell extracted from Jupyter
         attachments (dict): dict returned from get_attachments() function
+        notebook_filepath (str): path to notebook filename containing cell node
+        notebook_changed (bool): True means cell metadata changed and .ipynb file needs update
+        notebook_may_change (bool): True means command can may requrie update to .ipynb file
     """
     def __init__(self, cmd, id_, head, body, deck=None,
                  filepath=None, notebook=None, cell=None, attachments=None):
+        assert isinstance(cmd, str)
+        assert cmd in {'add', 'add2', 'update'}
+        
         self.cmd = cmd
         self.id = id_
         self.head = head
@@ -35,6 +41,12 @@ class Command:
         self.deck = deck
         self.cell = cell
         self.attachments = attachments
+        
+        self.notebook_filepath = None
+        self.notebook_changed = False
+        
+        if cmd in {'add', 'add2'}:
+            self.notebook_may_change = cmd
 
         
 def read_notebooks(notes_folder_location):
@@ -126,7 +138,7 @@ def commands_prepare(file_nb_dict, anki_deck_name):
 
     commands = []
 
-    for nb in file_nb_dict.values():
+    for filename, nb in file_nb_dict.items():
         for cell in nb['cells']:
             if not is_flashcard(cell):
                 continue
@@ -137,6 +149,7 @@ def commands_prepare(file_nb_dict, anki_deck_name):
                 cmd.deck = anki_deck_name
                 cmd.cell = cell
                 cmd.attachments = attachments
+                cmd.notebook_filepath = filename
                 commands.append(cmd)
                 
     return commands
@@ -154,7 +167,10 @@ def _exec_command(cmd):
     if cmd.cmd in ['add', 'add2']:
         id_ = anki_add_note(cmd.deck, cmd.head, cmd.body)
         new_meta = put_meta(cmd.cell.source, id_)
-        cmd.cell.source = new_meta
+        if cmd.cell.source != new_meta:
+            # need to update jupyter notebook
+            cmd.cell.source = new_meta
+            cmd.notebook_changed = True
         for name, (key, value) in cmd.attachments.items():
             if anki_get_media(key) is None:
                 anki_add_or_replace_media(key, value)
@@ -173,7 +189,10 @@ def commands_execute(file_nb_dict, commands):
         print('Executing:', cmd.cmd, cmd.head)
         _exec_command(cmd)
         
+    changed_files = {cmd.notebook_filepath for cmd in commands if cmd.notebook_changed}
+        
     for fl, nb in file_nb_dict.items():
-        print('Writing:', fl)
-        with open(fl, 'w') as f:
-            nbformat.write(nb, f)
+        if fl in changed_files:
+            print('Writing:', fl)
+            with open(fl, 'w') as f:
+                nbformat.write(nb, f)
