@@ -174,5 +174,6 @@ def commands_execute(file_nb_dict, commands):
         _exec_command(cmd)
         
     for fl, nb in file_nb_dict.items():
+        print('Writing:', fl)
         with open(fl, 'w') as f:
             nbformat.write(nb, f)

@@ -6,7 +6,7 @@ import argparse
 
 import mbrain as mb
 
-def dry_run(notes_folder_location, anki_deck_name):
+def sync(notes_folder_location, anki_deck_name):
     
     file_nb_dict = mb.read_notebooks(notes_folder_location)
     
@@ -17,7 +17,15 @@ def dry_run(notes_folder_location, anki_deck_name):
     else:
         print('Following commands required to sync:')
         for c in commands:
-            print(c.cmd + ': ' + c.head)
+            print(' * ' + c.cmd + ': ' + c.head)
+    
+        do_exec = input('Execute commands (this will potentially alter .ipynb!)? [y/N]:')
+        
+        if do_exec == 'y':
+            print('Executing...')
+            mb.commands_execute(file_nb_dict, commands)
+        else:
+            print('Aborted, nothing was done.')
     
 def main():
         
@@ -40,7 +48,7 @@ def main():
             parser.error('Specified path must exist.')
         if args.deck is None:
             parser.error('Please specify Anki deck.')
-        dry_run(args.path, args.deck)
+        sync(args.path, args.deck)
         
 
 
