@@ -115,7 +115,7 @@ def _figure_out_command(meta, head, body, note_ids):
 
 
 
-def commands_prepare(file_nb_dict, anki_deck_name):
+def commands_prepare(file_nb_dict, anki_deck_name, dbg_print=False):
     """Query Anki DB and check notes folder and prepare commands to sync.
     
     This function does not alter Anki database or notes folder.
@@ -124,6 +124,7 @@ def commands_prepare(file_nb_dict, anki_deck_name):
         file_nb_dict (dict str->nbformat.notebooknode.NotebookNode):
             dict mapping .ipynb file paths to notebook objects
         anki_deck_name (str): deck name in Anki database to sync to
+        dbg_print (bool): if True, print debug info
         
     Returns:
         list-of-mbrain.Command: list of commands, which if executed, will do sync
@@ -131,6 +132,7 @@ def commands_prepare(file_nb_dict, anki_deck_name):
     """
     assert isinstance(file_nb_dict, dict)
     assert isinstance(anki_deck_name, str)
+    assert isinstance(dbg_print, bool)
     
     existing_note_ids = anki_find_notes(anki_deck_name)
     # print(existing_note_ids)
@@ -139,11 +141,12 @@ def commands_prepare(file_nb_dict, anki_deck_name):
     commands = []
 
     for filename, nb in file_nb_dict.items():
+        if dbg_print: print('Processing:', filename)
         for cell in nb['cells']:
             if not is_flashcard(cell):
                 continue
 
-            meta, head, body, attachments = process_cell(cell)
+            meta, head, body, attachments = process_cell(cell, dbg_print)
             cmd = _figure_out_command(meta, head, body, existing_note_ids)
             if cmd is not None:
                 cmd.deck = anki_deck_name

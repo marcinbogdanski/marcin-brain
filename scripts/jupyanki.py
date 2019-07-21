@@ -6,11 +6,11 @@ import argparse
 
 import mbrain as mb
 
-def sync(notes_folder_location, anki_deck_name):
+def sync(notes_folder_location, anki_deck_name, debug=False):
     
     file_nb_dict = mb.read_notebooks(notes_folder_location)
     
-    commands = mb.commands_prepare(file_nb_dict, anki_deck_name)
+    commands = mb.commands_prepare(file_nb_dict, anki_deck_name, dbg_print=debug)
     
     if len(commands) == 0:
         print('Jupyter notes and Anki DB are in sync.')
@@ -39,8 +39,13 @@ def main():
                         help='Command to run.')
     parser.add_argument('path', nargs='?',
                         help='Path to folder with .ipynb files, or single file')
-    parser.add_argument('deck', nargs='?')
+    parser.add_argument('deck', nargs='?',
+                        help='Name of existing Anki deck to sync with')
+    parser.add_argument('--debug', action='store_true',
+                        help='Print debug info')
     args = parser.parse_args()
+    
+    print(args.debug)
     
     print('Command:', args.command)
     print('Path:   ', args.path)
@@ -53,7 +58,7 @@ def main():
             parser.error('Specified path must exist.')
         if args.deck is None:
             parser.error('Please specify Anki deck.')
-        sync(args.path, args.deck)
+        sync(args.path, args.deck, args.debug)
         
 
 

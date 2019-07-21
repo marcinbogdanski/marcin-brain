@@ -409,7 +409,7 @@ def replace_image_tags(string_html, attachment_name, attachment_sha256):
 
 
 
-def process_cell(cell):
+def process_cell(cell, dbg_print=False):
     """Extract meta, head, body and attachments from Jupyter cell
     
     This will:
@@ -443,6 +443,7 @@ def process_cell(cell):
     
     Params:
         source (str): cell source
+        dbg_print (bool): if True print debug
     
     Returns:
         meta (dict) - Anki metadata as dict
@@ -457,6 +458,7 @@ def process_cell(cell):
     
     # Extract and remove **...**
     head_raw = get_head(source)
+    if dbg_print: print(' ', head_raw)
     source = remove_head(source)
     source = source.strip()
     
