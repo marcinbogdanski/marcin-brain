@@ -14,6 +14,7 @@ from .anki import anki_invoke
 from .anki import anki_test_db
 from .anki import anki_get_decks
 from .anki import anki_find_notes
+from .anki import anki_get_note
 
 from .anki import anki_add_note
 from .anki import anki_get_note

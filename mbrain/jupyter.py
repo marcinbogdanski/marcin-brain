@@ -24,37 +24,37 @@ def is_flashcard(cell):
     
     if isinstance(source, list):
         for line in source:
-            if '<!--' in line:
+            if '<!---' in line:
                 return True
     elif isinstance(source, str):
-        if '<!--' in source:
+        if '<!---' in source:
             return True
         
     return False
 
 
-# This regex matches pattern:   <!--some text here-->
+# This regex matches pattern:   <!---some text here--->
 #
-#                   v----------- pattern:   <!--
-#                   | v--------- dot: matches any character except line break
-#                   | |v-------- star: match zero or more of preceeding token
-#                   | ||v------- lazy: make preceeding quantifier match as few characters as possible
-#                 vvvv|||vvv---- pattern:   -->
-_pattern_meta = r'<!--.*?-->'
+#                   v----------- pattern:   <!---
+#                   |  v--------- dot: matches any character except line break
+#                   |  |v-------- star: match zero or more of preceeding token
+#                   |  ||v------- lazy: make preceeding quantifier match as few characters as possible
+#                 vvvvv|||vvvv--- pattern:   --->
+_pattern_meta = r'<!---.*?--->'
 
 
 def get_meta(string):
     """Extract Anki metadata from cell source.
     
     Params:
-        string (str): input, e.g. '<!--{"id":"123456789"}--> rest of card.'
+        string (str): input, e.g. '<!---{"id":"123456789"}---> rest of card.'
     
     Returns:
         dick: metadata as dict, e.g. {"id": "123456789"}
     """
     meta = re.findall(_pattern_meta, string)
-    meta = meta[0]                            # only first <!-- -->
-    meta = meta.lstrip('<!--').rstrip('-->').strip()
+    meta = meta[0]                            # only first <!--- --->
+    meta = meta.lstrip('<!---').rstrip('--->').strip()
     
     if len(meta) == 0:
         return {}
@@ -66,15 +66,15 @@ def put_meta(string, anki_id):
     """Replace current Anki metadata with new params.
     
     Params:
-        string (str): input, e.g. '<!--Anki meta--> rest of card.'
+        string (str): input, e.g. '<!---Anki meta---> rest of card.'
     
     Returns:
-        str: new meta, e.g. '<!--new Anki meta-->'    
+        str: new meta, e.g. '<!---new Anki meta--->'    
     """
     assert isinstance(anki_id, str)
     
     meta_str = json.dumps({"id":anki_id})
-    meta_str = '<!-- ' + meta_str + ' -->'
+    meta_str = '<!--- ' + meta_str + ' --->'
     meta_list = list(meta_str)
     
     string_list = list(string)
@@ -84,16 +84,16 @@ def put_meta(string, anki_id):
         
         string_list[start:end] = meta_list
         
-        break # consider first <!-- --> only
+        break # consider first <!--- ---> only
     
     return ''.join(string_list)
 
 
 def remove_meta(string):
-    """Remove Anki metadata, i.e. first <!--...--> section
+    """Remove Anki metadata, i.e. first <!---...---> section
     
     Params:
-        string (str): input, e.g. '<!--Anki meta--> rest of card.'
+        string (str): input, e.g. '<!---Anki meta---> rest of card.'
     
     Returns:
         str: string w/o meta, e.g. ' rest of card.'
@@ -413,7 +413,7 @@ def process_cell(cell, dbg_print=False):
     """Extract meta, head, body and attachments from Jupyter cell
     
     This will:
-     - extract and remove metadata from <!--...--> tag from cell.source
+     - extract and remove metadata from <!---...---> tag from cell.source
      - extract and remove question from **...** tag from cell.source
        + convert $..$ into \(..\) in head
      - extract any attachments mentioned in ![...](...) tags in cell.source
@@ -425,7 +425,7 @@ def process_cell(cell, dbg_print=False):
        + replace <img src="attachment:..."> with <img src="SHA256">
     
     Example source:
-        <!--{"id":"1234567890"}-->
+        <!---{"id":"1234567890"}--->
         **Example question goes here**
         Some answer goes here
         With escaped dollar <span>\$</span>5.99 price
@@ -452,7 +452,7 @@ def process_cell(cell, dbg_print=False):
     assert isinstance(cell, nbformat.notebooknode.NotebookNode)
     source = cell.source
     
-    # Extract and remove <!--...-->
+    # Extract and remove <!---...--->
     meta = get_meta(source)
     source = remove_meta(source)
     

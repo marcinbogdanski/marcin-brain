@@ -10,27 +10,34 @@ def sync(notes_folder_location, anki_deck_name, debug=False):
     
     file_nb_dict = mb.read_notebooks(notes_folder_location)
     
-    commands = mb.commands_prepare(file_nb_dict, anki_deck_name, dbg_print=debug)
+    commands, orphan_ids = mb.commands_prepare(file_nb_dict, anki_deck_name, dbg_print=debug)
     
-    if len(commands) == 0:
-        print('Jupyter notes and Anki DB are in sync.')
-    else:
-        print('Following commands required to sync:')
-        for c in commands:
+    print('Num orphaned cards in Anki:', len(orphan_ids))
+    print('Num cards in Jupyter:', len(commands))
+    print('Num cards require sync:', len(commands) - sum([c.cmd == 'noop' for c in commands]))
+    print()
+    print('Orphaned cards:')
+    for id in orphan_ids:
+        front, back = mb.anki_get_note(id)
+        print(' * ' + front)
+    print()
+    print('Following commands required to sync:')
+    for c in commands:
+        if c.cmd != 'noop':
             print(' * ' + c.cmd + ': ' + c.head)
-            
-        files_to_update = {cmd.notebook_filepath for cmd in commands if cmd.notebook_may_change}
-        print('Files that will be potentially updated:')
-        for f in files_to_update:
-            print(' + ' + f)
-    
-        do_exec = input('Execute commands? [y/N]:')
         
-        if do_exec == 'y':
-            print('Executing...')
-            mb.commands_execute(file_nb_dict, commands)
-        else:
-            print('Aborted, nothing was done.')
+    files_to_update = {cmd.notebook_filepath for cmd in commands if cmd.notebook_may_change}
+    print('Files that will be potentially updated:')
+    for f in files_to_update:
+        print(' + ' + f)
+
+    do_exec = input('Execute commands? [y/N]:')
+    
+    if do_exec == 'y':
+        print('Executing...')
+        mb.commands_execute(file_nb_dict, commands)
+    else:
+        print('Aborted, nothing was done.')
     
 def main():
         

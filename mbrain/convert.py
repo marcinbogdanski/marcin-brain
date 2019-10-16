@@ -32,7 +32,7 @@ class Command:
     def __init__(self, cmd, id_, head, body, deck=None,
                  filepath=None, notebook=None, cell=None, attachments=None):
         assert isinstance(cmd, str)
-        assert cmd in {'add', 'add2', 'update'}
+        assert cmd in {'noop', 'add', 'add2', 'update'}
         
         self.cmd = cmd
         self.id = id_
@@ -46,7 +46,9 @@ class Command:
         self.notebook_changed = False
         
         if cmd in {'add', 'add2'}:
-            self.notebook_may_change = cmd
+            self.notebook_may_change = True
+        else:
+            self.notebook_may_change = False
 
         
 def read_notebooks(notes_folder_location):
@@ -93,7 +95,7 @@ def _figure_out_command(meta, head, body, note_ids):
         Command: object describing action to perform on Anki DB
     """
     if 'id' not in meta:
-        # This note has empty <!---->, meaning it was just added in Jupyter
+        # This note has empty <!------>, meaning it was just added in Jupyter
         cmd = Command('add', None, head, body)
     else:
         # Get note Anki ID
@@ -109,7 +111,7 @@ def _figure_out_command(meta, head, body, note_ids):
             if front != head or back != body:
                 cmd = Command('update', id_, head, body)
             else:
-                cmd = None
+                cmd = Command('noop', id_, head, body)
     return cmd
 
 
@@ -137,6 +139,7 @@ def commands_prepare(file_nb_dict, anki_deck_name, dbg_print=False):
     existing_note_ids = anki_find_notes(anki_deck_name)
     # print(existing_note_ids)
     # ['1560133178581', '1560133182006', ... ]
+    assert len(existing_note_ids) == len(set(existing_note_ids))
 
     commands = []
 
@@ -154,8 +157,12 @@ def commands_prepare(file_nb_dict, anki_deck_name, dbg_print=False):
                 cmd.attachments = attachments
                 cmd.notebook_filepath = filename
                 commands.append(cmd)
+    
+    orphaned_ids = set(existing_note_ids)
+    for cmd in commands:
+        orphaned_ids.remove(cmd.id)
                 
-    return commands
+    return commands, orphaned_ids
 
 
 def _exec_command(cmd):
@@ -179,6 +186,8 @@ def _exec_command(cmd):
                 anki_add_or_replace_media(key, value)
     elif cmd.cmd == 'update':
         anki_update_note(cmd.id, cmd.head, cmd.body)
+    elif cmd.cmd == 'noop':
+        pass # do nothing
     else:
         raise ValueError(f'Unknown command: {cmd.cmd}')
         
