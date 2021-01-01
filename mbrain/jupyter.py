@@ -398,7 +398,7 @@ def replace_image_tags(string_html, attachment_name, attachment_sha256):
     # This will match '<img src="attachment:ATTACHMENT_NAME" alt="XXX">'
     # Where ATTACHMENT_NAME is param passed to this function
     # and XXX is any string
-    pattern = f'<img src="attachment:{a}" alt=".*?">'
+    pattern = f'<img src="data:image/png;base64,.*" alt="{a}">'
     
     # Above pattern will be replaced with this
     target = f'<img src="{attachment_sha256}">'
@@ -470,7 +470,10 @@ def process_cell(cell, dbg_print=False):
     
     # Convert to HTML
     tmp_nb = nbformat.v4.new_notebook()
-    tmp_cell = nbformat.v4.new_markdown_cell(source=source)
+    if 'attachments' in cell:
+        tmp_cell = nbformat.v4.new_markdown_cell(source=source, attachments=dict(cell.attachments))
+    else:
+        tmp_cell = nbformat.v4.new_markdown_cell(source=source)
     tmp_nb['cells'].append(tmp_cell)
     html_exporter = nbconvert.HTMLExporter()
     html_exporter.template_file = 'basic'
