@@ -160,7 +160,8 @@ def commands_prepare(file_nb_dict, anki_deck_name, dbg_print=False):
     
     orphaned_ids = set(existing_note_ids)
     for cmd in commands:
-        orphaned_ids.remove(cmd.id)
+        if cmd.id is not None:   # add, add2
+            orphaned_ids.remove(cmd.id)
                 
     return commands, orphaned_ids
 
