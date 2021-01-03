@@ -38,7 +38,7 @@ ENV PYTHONPATH="/app"
 COPY . /app
 WORKDIR /app
 
-ENTRYPOINT ["bash"]
+ENTRYPOINT ["/bin/bash", "/app/launch.bash"]
 
 # Build like this
 # docker build -t marcin-brain .
