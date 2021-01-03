@@ -63,10 +63,18 @@ def read_notebooks(notes_folder_location):
     """
     
     # Find all .ipynb files in notes_folder
-    pattern = os.path.join(notes_folder_location, '**', '*.ipynb')
-    notebook_filepaths = glob.glob(pattern, recursive=True)
+    # pattern = os.path.join(notes_folder_location, '**', '*.ipynb')
+    # notebook_filepaths = glob.glob(pattern, recursive=True)
     # display(notebook_filepaths)
     # ['/../notes/DeepRL_Notes.ipynb', '/../notes/Coursera_DLAI.ipynb']
+
+    notebook_filepaths = []
+    # ['/../notes/DeepRL_Notes.ipynb', '/../notes/Coursera_DLAI.ipynb']
+    with open(os.path.join(notes_folder_location, 'anki_sync.txt'), 'r') as f:
+        for fp in f.readlines():
+            fp = fp.strip()
+            if len(fp) != 0 and not fp.startswith('#'):
+                notebook_filepaths.append(os.path.join(notes_folder_location, fp))
     
     file_nb_dict = {}
     
