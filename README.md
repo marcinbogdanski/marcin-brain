@@ -1,6 +1,8 @@
 # Marcin Brain
 
-Jupyter Notebook server for Marcin notes
+This repo performs two functions:
+* Jupyter Notebook server for Marcin notes
+* Anki sync script from Marcin notes
 
 # Build and Run
 
@@ -37,6 +39,20 @@ __Launch Container__
 docker run -it --rm -p 9999:9999 --env-file dotenv.env marcin-brain
 ```
 
+# Run on EC2
+
+__Start EC2 Instance__
+
+See instructions in `marcin-notes/300_CS/Linux_Server.ipynb`
+
+__Run Commands__
+
+Connect to Jupyter server running in container and open terminal
+
+```bash
+# Clone marcin-notes
+git clone https://github.com/marcinbogdanski/marcin-notes.git
+```
 
 # Old Readme
 

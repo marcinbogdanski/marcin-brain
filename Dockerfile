@@ -21,6 +21,7 @@ RUN apt-get install -y nodejs
 RUN jupyter nbextension enable --py widgetsnbextension --sys-prefix
 RUN jupyter labextension install @jupyter-widgets/jupyterlab-manager
 RUN jupyter labextension install @ijmbarr/jupyterlab_spellchecker
+RUN jupyter labextension install jupyterlab-drawio
 RUN jupyter labextension install nbdime-jupyterlab
 
 # Lock nbconvert <6.0.0 to avoid a bug
@@ -33,10 +34,14 @@ RUN pip install pylint
 ENV HOME="/root"
 RUN chmod a+rwx /root
 
+ENV SHELL="/bin/bash"
 ENV PYTHONPATH="/app"
 
 COPY . /app
 WORKDIR /app
+
+# Container Setup
+RUN bash /app/scripts/container_setup.bash
 
 ENTRYPOINT ["/bin/bash", "/app/launch.bash"]
 
