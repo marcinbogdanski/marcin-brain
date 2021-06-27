@@ -9,7 +9,7 @@
 # - JUPYTER_LAB_PASSWORD_HASH can be acquired with python script:
 #    In [1]: from notebook.auth import passwd
 #    In [2]: passwd(algorithm='sha1')
-mkdir /root/.jupyter
-echo "c.LabApp.password = '${JUPYTER_PASSWORD}'" > /root/.jupyter/jupyter_notebook_config.py
+mkdir /home/appuser/.jupyter
+echo "c.LabApp.password = '${JUPYTER_PASSWORD}'" > /home/appuser/.jupyter/jupyter_notebook_config.py
 
-jupyter lab --ip=0.0.0.0 --port=${JUPYTER_PORT} --allow-root --no-browser
+jupyter lab --ip=0.0.0.0 --port=${JUPYTER_PORT} --no-browser

@@ -38,21 +38,17 @@ __Launch Container__
 ```
 docker run -it --rm -p 9999:9999 --env-file dotenv.env marcin-brain
 ```
+or
+```
+docker-compose --env-file dotenv.env up
+```
+
 
 # Run on EC2
 
 __Start EC2 Instance__
 
 See instructions in `marcin-notes/300_CS/Linux_Server.ipynb`
-
-__Run Commands__
-
-Connect to Jupyter server running in container and open terminal
-
-```bash
-# Clone marcin-notes
-git clone https://github.com/marcinbogdanski/marcin-notes.git
-```
 
 # Old Readme
 

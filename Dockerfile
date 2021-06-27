@@ -30,20 +30,25 @@ RUN pip install nbconvert==5.6.1
 # Development
 RUN pip install pylint
 
-# Required to run Jupyter as non-root
-ENV HOME="/root"
-RUN chmod a+rwx /root
+# Create and switch to non-root user
+# - this is mainly so files created in mounted volumes have normal permissions
+RUN useradd -ms /bin/bash appuser
+USER appuser
+
+# # Required to run Jupyter as non-root
+# ENV HOME="/root"
+# RUN chmod a+rwx /root
 
 ENV SHELL="/bin/bash"
-ENV PYTHONPATH="/app"
+ENV PYTHONPATH="/home/appuser/app"
 
-COPY . /app
-WORKDIR /app
+COPY --chown=appuser:appuser . /home/appuser/app
+WORKDIR /home/appuser/app
 
 # Container Setup
-RUN bash /app/scripts/container_setup.bash
+RUN bash /home/appuser/app/scripts/container_setup.bash
 
-ENTRYPOINT ["/bin/bash", "/app/launch.bash"]
+ENTRYPOINT ["/bin/bash", "/home/appuser/app/launch.bash"]
 
 # Build like this
 # docker build -t marcin-brain .
