@@ -4,15 +4,14 @@ This repo performs two functions:
 * Jupyter Notebook server for Marcin notes
 * Anki sync script from Marcin notes
 
-# Build and Run
+# Build And Run
 
-__Build Container__
-
+## Build Container
 ```
 docker build -t marcin-brain .
 ```
 
-__Generate Password__ (optional)
+## Generate Password (optional)
 
 * run docker container: `docker run -it --rm marcin-brain`
 * run python interpreter: `python`
@@ -23,8 +22,15 @@ __Generate Password__ (optional)
   * you should see password hash in form:
     * `sha1:67c9e60bb8b6:9ffede0825894254b2e042ea597d771089e11aed`
 
+## Run Container
 
-__Prepare Env File__:
+__Option #1: Quick Run__
+
+```
+docker run -d -p 9999:9999 -e JUPYTER_PORT=9999 -e JUPYTER_PASSWORD=sha1:2b88e8fc1b92:14583de5a78e330b0637266a77cb76dc95cfc6f4 marcin-brain
+```
+
+__Option #2: Run With Env File__
 
 Create `dotenv.env` file:
 
@@ -33,15 +39,47 @@ JUPYTER_PASSWORD=sha1:67c9e60bb8b6:9ffede0825894254b2e042ea597d771089e11aed
 JUPYTER_PORT=9999
 ```
 
-__Launch Container__
+Launch container:
 
 ```
 docker run -it --rm -p 9999:9999 --env-file dotenv.env marcin-brain
 ```
-or
+
+or with docker-compose
+
 ```
 docker-compose --env-file dotenv.env up
 ```
+
+## Git Checkout
+
+Inside container
+
+```
+git config --global credential.helper store
+git clone https://github.com/marcinbogdanski/marcin-notes.git
+```
+
+Provide Git username and Personal Access Token (PAT)
+
+## Run with external storage and SSH Agent (advanced)
+
+Add following lines to docker-compose
+
+```yaml
+    volumes:
+      - "/home/marcin/marcin-notes:/home/appuser/app/marcin-notes"
+      - "/home/marcin/.ssh/id_rsa:/home/appuser/id_rsa"
+```
+
+Then inside container:
+
+```
+eval "$(ssh-agent -s)"
+ssh-add -L
+ssh-add /home/appuser/id_rsa
+```
+
 
 
 # Run on EC2

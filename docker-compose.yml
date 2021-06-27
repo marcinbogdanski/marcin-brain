@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  marcin-notes:
+    image: marcin-brain
+    ports:
+      - "9999:9999"
+    # volumes:
+    #   - "/home/marcin/marcin-notes:/home/appuser/app/marcin-notes"
+    #   - "/home/marcin/.ssh/id_rsa:/home/appuser/id_rsa"
+    environment:
+      - "JUPYTER_PORT=${JUPYTER_PORT}"
+      - "JUPYTER_PASSWORD=${JUPYTER_PASSWORD}"
